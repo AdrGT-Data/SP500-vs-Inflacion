@@ -42,9 +42,15 @@ sp500 <- read_csv("^spx_m.csv", show_col_types = FALSE) |>
 
 # EDA
 
-ES: En este punto haremos un pequeño análisis exploratorio de los datos donde buscaremos datos faltantes si los hay, visualizaremos los datos, veremos las posibles relaciones que hay entre las dos variables... Empezaremos con una vista rápida de la estructura.
+ES: En este punto haremos un pequeño análisis exploratorio de los datos donde buscaremos datos faltantes si los hay, visualizaremos los datos, veremos las posibles relaciones que hay entre las dos variables.
 
 EN: In this part we are going to do a little exploratory data analysis. We do this due to we want to find NA or missing observations, visualise the datas, to try to find possible relations between the variables... We will start with a rapid watch of the estructure.
+
+## Limpieza de los datos
+
+ES: Empezaremos con una limpieza de los datasets, buscando datos faltantes, contando las observaciones...
+
+EN: 
 
 ```{r}
 glimpse(cpi)
@@ -54,35 +60,76 @@ glimpse(cpi)
 glimpse(sp500)
 ```
 
-ES: Podemos observar con estos datos que:
+ES: Convertimos los nombres de las columnas a minúsculas, sin espacios ni carácteres especiales para evitar errores al escribir código.
 
-- La cantidad de observaciones del sp500 es el triple de grande que la del cpi.
-
-- Las fechas 
+EN:
 
 
 ```{r}
+sp500 <- sp500 |> clean_names()
+cpi    <- cpi    |> clean_names()
+```
 
-# 2) Crear clave mensual (primer día del mes) y quedarnos con 1 fila por mes
+ES: Como con `glimpse()` hemos visto que los datos están en días diferentes, agrupamos los datos en vez de en días, en meses.
+
+EN:
+
+```{r}
 spx_m <- sp500 |>
   mutate(month = floor_date(as.Date(date), "month")) |>
   group_by(month) |>
-  summarise(sp500 = last(sp500), .groups = "drop")  # si ya es mensual, no cambia nada
+  summarise(sp500 = last(sp500), .groups = "drop")
 
 cpi_m <- cpi |>
   mutate(month = floor_date(as.Date(date), "month")) |>
   group_by(month) |>
-  summarise(cpi = first(cpi), .groups = "drop")     # CPI trae 1 por mes; ‘first’ por claridad
-
-# 3) Intersección de periodos y unión
-df <- inner_join(spx_m, cpi_m, by = "month") |>
-  arrange(month)
-
-# 4) Comprobaciones rápidas
-df %>% summarise(n = n(),
-                 start = min(month), end = max(month),
-                 na_spx = sum(is.na(sp500)), na_cpi = sum(is.na(cpi)))
+  summarise(cpi = first(cpi), .groups = "drop")
 ```
+
+ES: En la primera vista de los datos habíamos visto que el sp500 tiene el triple de observaciones que el CPI. Esta característica puede causarnos problemas en el futuro. Debido a la falta de datos de CPI en varios años.
+
+En Ingeniería de Datos me enseñaron a solo eliminar datos en casos muy concretos y como última opción. Aún así y como este es un pequeño proyecto de análisis de 2 datasets de solo 2 variables de interés, crearemos un nuevo dataset que una estos dos usando la columna `month`como clave. Esto permitirá crear un dataset común, que empiece cuando ambas series tienen datos y acabe cuando ambas terminan.
+
+EN:
+
+```{r}
+mezcla <- inner_join(spx_m, cpi_m, by = "month") |>
+  arrange(month) #Ordeno las observaciones por orden ascendente
+
+mezcla %>%
+  summarise(
+    n = n(), # Cuántos meses hay
+    start = min(month), # Primera fecha
+    end = max(month), # Última fecha
+    na_spx = sum(is.na(sp500)), # Vemos los NA (valores faltantes) hay en sp500
+    na_cpi = sum(is.na(cpi)) # Vemos los NA (valores faltantes) hay en cpi
+  )
+```
+
+ES: Gracias a este pequeño paso tenemos un mismo dataset con los datos de interés, sin datos faltantes, con 942 observaciones y con las fechas establecidas a 1 de cada mes.
+
+## Nuevas variables
+
+ES: En este punto crearemos nuevas variables que nos ayudarán en próximos análisis.
+
+EN:
+
+**Retorno mensual del sp500**
+
+ES: El retorno mensual mide el cambio relativo de un mes a otro. Es la métrica básica para ver volatilidad a corto plazo y hacer distribuciones.
+
+EN: 
+
+```{r}
+mezcla <- mezcla |>
+  arrange(month) |>
+  mutate(
+    ret_m = (sp500 / lag(sp500) - 1) * 100 # lag() obtiene el valor del mes anterior
+  )
+```
+
+**Retorno acumulado a 12 meses**
+
 
 
 
