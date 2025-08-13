@@ -1,0 +1,95 @@
+---
+title: "S&P 500 vs Inflación (CPI) — Análisis mensual"
+author: "Adrián Gutiérrez"
+output:
+  html_document:
+    toc: true
+    toc_float: true
+    number_sections: true
+---
+
+# Introducción
+
+ES: En este código compararemos la evolución del sp&500 con la inflación de EEUU. Importante puntuar que el S&P 500 es un **índice de precios de acciones**; el CPI es un **índice de precios al consumidor**. No esperamos que se muevan igual, pero comparar sus variaciones ayuda a interpretar el contexto macro. Los datos estan sacados de Stood(SP500) y de FRED (CPI).
+
+EN: In this code we are going to compare the evolution of SP&500 with the EEUU inflation. It´s important to point the fact that the S&P 500 is a **action price indicator**, and the CPI is a **consumer price indicator** . We won´t expect they evolute as the same way, but compare their variations helps us to interpretate the real context. The dataset have been download from Stood (SP500) and from FRED (CPI).
+
+## Biblioteca de paquetes
+
+Cargamos los paquetes necesarios:
+
+```{r setup, message=FALSE, warning=FALSE}
+
+library(tidyverse)
+library(lubridate)
+library(janitor)
+
+```
+
+ES: Cargamos los datasets
+
+EN: We load the datasets
+
+```{r}
+cpi <- read_csv("CPIAUCSL.csv", show_col_types = FALSE) |>
+  rename(date = observation_date, cpi = CPIAUCSL) |>
+  mutate(date = as.Date(date))
+
+sp500 <- read_csv("^spx_m.csv", show_col_types = FALSE) |>
+  janitor::clean_names() |>
+  transmute(date = as.Date(date), sp500 = close)
+```
+
+# EDA
+
+ES: En este punto haremos un pequeño análisis exploratorio de los datos donde buscaremos datos faltantes si los hay, visualizaremos los datos, veremos las posibles relaciones que hay entre las dos variables... Empezaremos con una vista rápida de la estructura.
+
+EN: In this part we are going to do a little exploratory data analysis. We do this due to we want to find NA or missing observations, visualise the datas, to try to find possible relations between the variables... We will start with a rapid watch of the estructure.
+
+```{r}
+glimpse(cpi)
+```
+
+```{r}
+glimpse(sp500)
+```
+
+ES: Podemos observar con estos datos que:
+
+- La cantidad de observaciones del sp500 es el triple de grande que la del cpi.
+
+- Las fechas 
+
+
+```{r}
+
+# 2) Crear clave mensual (primer día del mes) y quedarnos con 1 fila por mes
+spx_m <- sp500 |>
+  mutate(month = floor_date(as.Date(date), "month")) |>
+  group_by(month) |>
+  summarise(sp500 = last(sp500), .groups = "drop")  # si ya es mensual, no cambia nada
+
+cpi_m <- cpi |>
+  mutate(month = floor_date(as.Date(date), "month")) |>
+  group_by(month) |>
+  summarise(cpi = first(cpi), .groups = "drop")     # CPI trae 1 por mes; ‘first’ por claridad
+
+# 3) Intersección de periodos y unión
+df <- inner_join(spx_m, cpi_m, by = "month") |>
+  arrange(month)
+
+# 4) Comprobaciones rápidas
+df %>% summarise(n = n(),
+                 start = min(month), end = max(month),
+                 na_spx = sum(is.na(sp500)), na_cpi = sum(is.na(cpi)))
+```
+
+
+
+
+
+
+
+
+
+
