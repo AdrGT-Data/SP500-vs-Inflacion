@@ -23,6 +23,7 @@ Cargamos los paquetes necesarios:
 library(tidyverse)
 library(lubridate)
 library(janitor)
+library(scales)
 
 ```
 
@@ -50,7 +51,7 @@ EN: In this part we are going to do a little exploratory data analysis. We do th
 
 ES: Empezaremos con una limpieza de los datasets, buscando datos faltantes, contando las observaciones...
 
-EN: 
+EN: We are going to start with a cleaning of the datasets, serching for missing datas, counting the observations...
 
 ```{r}
 glimpse(cpi)
@@ -62,7 +63,7 @@ glimpse(sp500)
 
 ES: Convertimos los nombres de las columnas a minúsculas, sin espacios ni carácteres especiales para evitar errores al escribir código.
 
-EN:
+EN: We turn the names of the columns into small letters, without spaces neither special caracters with the aim of avoid errors in the code.
 
 
 ```{r}
@@ -72,7 +73,7 @@ cpi    <- cpi    |> clean_names()
 
 ES: Como con `glimpse()` hemos visto que los datos están en días diferentes, agrupamos los datos en vez de en días, en meses.
 
-EN:
+EN: With the command `glimpse()` we have seen that the dataset have been saved in diferents days of a month, that is why we group in months instead of days.
 
 ```{r}
 spx_m <- sp500 |>
@@ -86,11 +87,13 @@ cpi_m <- cpi |>
   summarise(cpi = first(cpi), .groups = "drop")
 ```
 
-ES: En la primera vista de los datos habíamos visto que el sp500 tiene el triple de observaciones que el CPI. Esta característica puede causarnos problemas en el futuro. Debido a la falta de datos de CPI en varios años.
+ES: En la primera vista de los datos habíamos visto que el sp500 tiene el triple de observaciones que el CPI. Esta cualidad puede causarnos problemas en el futuro. Debido a la falta de datos de CPI en varios años.
 
-En Ingeniería de Datos me enseñaron a solo eliminar datos en casos muy concretos y como última opción. Aún así y como este es un pequeño proyecto de análisis de 2 datasets de solo 2 variables de interés, crearemos un nuevo dataset que una estos dos usando la columna `month`como clave. Esto permitirá crear un dataset común, que empiece cuando ambas series tienen datos y acabe cuando ambas terminan.
+En Ingeniería de Datos me enseñaron a solo eliminar datos en casos muy concretos y como última opción. Sin embargo, este es un pequeño proyecto de análisis, por ello crearemos un nuevo dataset que una estos dos usando la columna `month`como clave. Esto permitirá crear un dataset común, que empiece cuando ambas series tienen datos y acabe cuando ambas terminan.
 
-EN:
+EN: In our first look at the datasets, we observed that the S&P 500 has about three times more observations than the CPI. That characteristic may cause problems in the future.
+
+In Data Engineering teach me only eliminate data if there is not other option. However, this is a little proyect of analysis 
 
 ```{r}
 mezcla <- inner_join(spx_m, cpi_m, by = "month") |>
@@ -128,7 +131,110 @@ mezcla <- mezcla |>
   )
 ```
 
-**Retorno acumulado a 12 meses**
+**Retorno acumulado a 12 meses (Anual)**
+
+ES: El retorno mensual suele ser inestable en muchas inversiones. Usualemente lo que interesa a la hora de analizar inversiones es el retorno anual.
+
+EN: 
+
+```{r}
+mezcla <- mezcla |>
+  arrange(month) |>
+  mutate(
+    ret_12m = (sp500 / lag(sp500, 12) - 1) * 100 
+  )
+```
+
+**Inflación mensual y anual**
+
+ES: Hacemos lo mismo con la inflación que con el sp500.
+
+EN:
+
+```{r}
+mezcla <- mezcla |>
+  arrange(month) |>
+  mutate(
+    infl_m = (cpi / lag(cpi) - 1) * 100, # Mensual
+    
+    infl_12m = (cpi/lag(cpi, 12) - 1 ) * 100 # Anual
+    
+  )
+```
+
+**SP500 deflactado por CPI**
+
+ES: Esta variable describe cuanto realmente gana el sp500 sin contar la inflación.
+
+EN:
+
+```{r}
+mezcla <- mezcla |>
+  arrange(month) |>
+  mutate(
+    sp500_real = (sp500 / cpi) * 100
+  )
+```
+
+**Normalizar los valores**
+
+ES: Creamos una variable con las escalas normalizadas para posibles comparaciones futuras.
+
+EN:
+
+```{r}
+mezcla <- mezcla |>
+  arrange(month) |>
+  mutate(
+    sp_norm = sp500 / first(na.omit(sp500)) * 100,
+    cpi_norm = cpi / first(na.omit(cpi)) * 100
+  )
+```
+
+## Visión Estadística
+
+ES: Calcularemos estadísticos útiles para posibles inferencias futuras y para poder ver acerca de la naturaleza de los datos.
+
+EN:
+
+```{r}
+# --- 1) Resumen estadístico ---
+desc <- mezcla |>
+  summarise(
+    across(
+      .cols = c(sp500, cpi, ret_m, ret_12m, infl_m, infl_12m),
+      .fns  = list(
+        min    = ~min(.x, na.rm = TRUE),
+        p25    = ~quantile(.x, 0.25, na.rm = TRUE), #Primer cuartil
+        median = ~median(.x, na.rm = TRUE),
+        mean   = ~mean(.x, na.rm = TRUE),
+        p75    = ~quantile(.x, 0.75, na.rm = TRUE), # Tercer cuartil
+        max    = ~max(.x, na.rm = TRUE)
+      ),
+      .names = "{.col}_{.fn}"
+    )
+  )
+print(desc)
+```
+
+# Análisis
+
+```{r}
+mezcla |> 
+  select(month, sp_norm, cpi_norm) |>
+  pivot_longer(-month, names_to = "serie", values_to = "norm") |>
+  ggplot(aes(month, norm, color = serie)) +
+  geom_line(size = 1) +
+  labs(
+    title = "Evolución normalizada S&P 500 vs CPI",
+    subtitle = "Índice base 100 en la primera observación",
+    x = NULL, y = "Índice"
+  ) +
+  theme_minimal()
+```
+
+
+
 
 
 
