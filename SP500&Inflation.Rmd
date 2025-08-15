@@ -89,11 +89,11 @@ cpi_m <- cpi |>
 
 ES: En la primera vista de los datos habíamos visto que el sp500 tiene el triple de observaciones que el CPI. Esta cualidad puede causarnos problemas en el futuro. Debido a la falta de datos de CPI en varios años.
 
-En Ingeniería de Datos me enseñaron a solo eliminar datos en casos muy concretos y como última opción. Sin embargo, este es un pequeño proyecto de análisis, por ello crearemos un nuevo dataset que una estos dos usando la columna `month`como clave. Esto permitirá crear un dataset común, que empiece cuando ambas series tienen datos y acabe cuando ambas terminan.
+En Ingeniería de Datos me enseñaron a solo eliminar datos en casos muy concretos y como última opción. Sin embargo, este es un pequeño proyecto de análisis, por ello crearemos un nuevo dataset que una estos dos usando la columna `month`como clave.
 
 EN: In our first look at the datasets, we observed that the S&P 500 has about three times more observations than the CPI. That characteristic may cause problems in the future.
 
-In Data Engineering teach me only eliminate data if there is not other option. However, this is a little proyect of analysis 
+In Data Engineering teach me only eliminate data if there is not other option. However, this is a little proyect of analysis and that is why we are going to create a new dataset which mix the other using the column `month`as key. 
 
 ```{r}
 mezcla <- inner_join(spx_m, cpi_m, by = "month") |>
@@ -193,9 +193,9 @@ mezcla <- mezcla |>
 
 ## Visión Estadística
 
-ES: Calcularemos estadísticos útiles para posibles inferencias futuras y para poder ver acerca de la naturaleza de los datos.
+ES: Calcularemos estadísticos útiles para posibles inferencias futuras y para poder visualizar la naturaleza de los datos.
 
-EN:
+EN: 
 
 ```{r}
 # --- 1) Resumen estadístico ---
@@ -217,27 +217,80 @@ desc <- mezcla |>
 print(desc)
 ```
 
-# Análisis
+## Visualización
+
+ES: En este punto programaremos gráficos que nos ayuden a ver las relaciones de las variables.
+
+EN:
+
+```{r}
+# --- 4) Distribución de retornos mensuales ---
+mezcla |>
+  ggplot(aes(ret_m)) +
+  geom_histogram(bins = 40, fill = "skyblue", color = "white") +
+  labs(
+    title = "Distribución de retornos mensuales del S&P 500",
+    x = "% mensual", y = "Frecuencia"
+  ) +
+  theme_minimal()
+```
+
+ES: Muestra volatilidad y asimetría.
 
 ```{r}
 mezcla |> 
   select(month, sp_norm, cpi_norm) |>
-  pivot_longer(-month, names_to = "serie", values_to = "norm") |>
-  ggplot(aes(month, norm, color = serie)) +
+  pivot_longer(-month, names_to = "variables", values_to = "norm") |>
+  ggplot(aes(month, norm, color = variables)) +
   geom_line(size = 1) +
   labs(
     title = "Evolución normalizada S&P 500 vs CPI",
-    subtitle = "Índice base 100 en la primera observación",
     x = NULL, y = "Índice"
   ) +
   theme_minimal()
 ```
 
+ES: En este gráfico simplmente comparamos la evolución de ambas variables normalizadas.
 
+EN: 
 
+```{r}
+# --- 3) Inflación Interanual vs retorno 12m ---
+mezcla |>
+  select(month, infl_12m, ret_12m) |>
+  pivot_longer(-month, names_to = "serie", values_to = "valor") |>
+  ggplot(aes(month, valor, color = serie)) +
+  geom_hline(yintercept = 0, linetype = "dashed", alpha = 0.5) +
+  geom_line(size = 1) +
+  scale_y_continuous(labels = label_percent(scale = 1)) +
+  labs(
+    title = "Inflación interanual vs Retorno S&P 500 a 12m",
+    x = NULL, y = "%"
+  ) +
+  theme_minimal()
+```
 
+ES: Permite ver si subidas o bajadas de inflación coinciden con cambios en la rentabilidad.
 
+EN: 
 
+```{r}
+# --- 5) Dispersión Inflación vs Retorno futuro ---
+mezcla |>
+  ggplot(aes(infl_12m, lead(ret_12m, 12))) +
+  geom_point(alpha = 0.6) +
+  geom_smooth(method = "lm", se = FALSE, color = "red") +
+  labs(
+    title = "Inflación actual vs Retorno S&P 500 en los próximos 12 meses",
+    x = "Inflación interanual (%) en t",
+    y = "Retorno (%) de t a t+12"
+  ) +
+  theme_minimal()
+```
+
+ES: Un primer vistazo a si hay relación (positiva, negativa o nula) entre inflación y bolsa.
+
+EN: 
 
 
 
