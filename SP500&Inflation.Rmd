@@ -10,7 +10,7 @@ output:
 
 # Introducción
 
-ES: En este código compararemos la evolución del sp&500 con la inflación de EEUU. Importante puntuar que el S&P 500 es un **índice de precios de acciones**; el CPI es un **índice de precios al consumidor**. No esperamos que se muevan igual, pero comparar sus variaciones ayuda a interpretar el contexto macro. Los datos estan sacados de Stood(SP500) y de FRED (CPI).
+ES: En este análisis compararemos la evolución del **S&P 500** con la **inflación de EE.UU.(CPI)**. Es importante recordar que el S&P 500 es un **índice de precios de acciones**, mientras que el CPI es un **índice de precios al consumidor**. No esperamos que se muevan del mismo modo, pero comparar sus variaciones ayuda a interpretar el contexto macroeconómico. Los datos se han descargado de **Stood**(S&P 500) y de **FRED** (CPI).
 
 EN: In this code we are going to compare the evolution of SP&500 with the EEUU inflation. It´s important to point the fact that the S&P 500 is a **action price indicator**, and the CPI is a **consumer price indicator** . We won´t expect they evolute as the same way, but compare their variations helps us to interpretate the real context. The dataset have been download from Stood (SP500) and from FRED (CPI).
 
