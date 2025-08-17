@@ -12,7 +12,7 @@ output:
 
 ES: En este análisis compararemos la evolución del **S&P 500** con la **inflación de EE.UU.(CPI)**. Es importante recordar que el S&P 500 es un **índice de precios de acciones**, mientras que el CPI es un **índice de precios al consumidor**. No esperamos que se muevan del mismo modo, pero comparar sus variaciones ayuda a interpretar el contexto macroeconómico. Los datos se han descargado de **Stood**(S&P 500) y de **FRED** (CPI).
 
-EN: In this code we are going to compare the evolution of SP&500 with the EEUU inflation. It´s important to point the fact that the S&P 500 is a **action price indicator**, and the CPI is a **consumer price indicator** . We won´t expect they evolute as the same way, but compare their variations helps us to interpretate the real context. The dataset have been download from Stood (SP500) and from FRED (CPI).
+EN: In this analysis, we are going to compare the evolution of **SP&500** with the **U.S. inflation (CPI)**. It´s important to note that the S&P 500 is a **stock price index**, whereas the CPI is a **consumer price index** . We do not expect they move as in the same way, but comparing their changes helps us to interpret the macroeconomic context. The datasets were downloaded from **Stood** (SP500) and **FRED** (CPI).
 
 ## Biblioteca de paquetes
 
@@ -43,15 +43,22 @@ sp500 <- read_csv("^spx_m.csv", show_col_types = FALSE) |>
 
 # EDA
 
-ES: En este punto haremos un pequeño análisis exploratorio de los datos donde buscaremos datos faltantes si los hay, visualizaremos los datos, veremos las posibles relaciones que hay entre las dos variables.
+ES: Realizamos un análisis exploratorio de los datos (EDA) para detectar valores faltantes, entender la estructura y visualizar tendencias. 
 
-EN: In this part we are going to do a little exploratory data analysis. We do this due to we want to find NA or missing observations, visualise the datas, to try to find possible relations between the variables... We will start with a rapid watch of the estructure.
+Estandarizamos los nombres de las columnas a minúsculas y sin espacios o carácteres especiales para evitar errores al programar.
 
-## Limpieza de los datos
+EN: We do a exploratory data analysis to check for missing values, inspect structure and visualize trends. 
 
-ES: Empezaremos con una limpieza de los datasets, buscando datos faltantes, contando las observaciones...
+We convert column names to lowercase without spaces or special characters to avoid coding errors.
 
-EN: We are going to start with a cleaning of the datasets, serching for missing datas, counting the observations...
+```{r}
+sp500 <- sp500 |> clean_names()
+cpi    <- cpi    |> clean_names()
+```
+
+ES: Empezamos con una limpieza de los datasets, buscando datos faltantes, contando las observaciones...
+
+EN: We start with a cleaning of the datasets, searching for missing data, counting the observations...
 
 ```{r}
 glimpse(cpi)
@@ -61,19 +68,11 @@ glimpse(cpi)
 glimpse(sp500)
 ```
 
-ES: Convertimos los nombres de las columnas a minúsculas, sin espacios ni carácteres especiales para evitar errores al escribir código.
+## Alineación mensual
 
-EN: We turn the names of the columns into small letters, without spaces neither special caracters with the aim of avoid errors in the code.
+ES: Dado que las series no comparten el mismo día del mes, agregamos por **mes** (primer día del mes) y tomamos el **último** valor mensual del S&P 500 y el **único/primer** valor del CPI.
 
-
-```{r}
-sp500 <- sp500 |> clean_names()
-cpi    <- cpi    |> clean_names()
-```
-
-ES: Como con `glimpse()` hemos visto que los datos están en días diferentes, agrupamos los datos en vez de en días, en meses.
-
-EN: With the command `glimpse()` we have seen that the dataset have been saved in diferents days of a month, that is why we group in months instead of days.
+EN: Since the series differ in the day within each month, we aggregate to **monthly** (first day of month), using the **last** monthly close for the S&P 500 and the **first/single** value for CPI.
 
 ```{r}
 spx_m <- sp500 |>
@@ -87,9 +86,11 @@ cpi_m <- cpi |>
   summarise(cpi = first(cpi), .groups = "drop")
 ```
 
-ES: En la primera vista de los datos habíamos visto que el sp500 tiene el triple de observaciones que el CPI. Esta cualidad puede causarnos problemas en el futuro. Debido a la falta de datos de CPI en varios años.
+## Unión y resumen
 
-En Ingeniería de Datos me enseñaron a solo eliminar datos en casos muy concretos y como última opción. Sin embargo, este es un pequeño proyecto de análisis, por ello crearemos un nuevo dataset que una estos dos usando la columna `month`como clave.
+ES: En anteriores pasos habíamos visto que el sp500 tiene el triple de observaciones que el CPI. Esta cualidad puede causarnos problemas en el futuro. Debido a la falta de datos de CPI en varios años.
+
+En Ingeniería de Datos me han enseñado a solo eliminar datos en casos muy concretos y como última opción. Sin embargo, este es un pequeño proyecto de análisis, por ello crearemos un nuevo dataset que una estos dos usando la columna `month`como clave.
 
 EN: In our first look at the datasets, we observed that the S&P 500 has about three times more observations than the CPI. That characteristic may cause problems in the future.
 
@@ -109,7 +110,9 @@ mezcla %>%
   )
 ```
 
-ES: Gracias a este pequeño paso tenemos un mismo dataset con los datos de interés, sin datos faltantes, con 942 observaciones y con las fechas establecidas a 1 de cada mes.
+ES: Con esto tenemos un mismo dataset con 942, sin datos faltantes y con un período común: **1947 - 2025/06**.
+
+EN: With that step, we have only one dataset, with 942 observations, without NA and with a common sample: **1947 - 2025/06**.
 
 ## Nuevas variables
 
@@ -117,11 +120,11 @@ ES: En este punto crearemos nuevas variables que nos ayudarán en próximos aná
 
 EN: At that point we are going to create new variables which will help us in future analisys.
 
-**Retorno mensual del sp500**
+**Retorno mensual del S&P 500**
 
-ES: El retorno mensual mide el cambio relativo de un mes a otro. Es la métrica básica para ver volatilidad a corto plazo y hacer distribuciones.
+ES: Mide el cambio relativo de un mes a mes; útil para ver volatilidad a corto plazo y hacer distribuciones.
 
-EN: The monthly return measures the relative change between one month and the next one. Is the basic metric to see the short term volatility and doing distributions.
+EN: Measures month-to-month relative change; useful to see the short term volatility and to do distributions.
 
 ```{r}
 mezcla <- mezcla |>
@@ -133,9 +136,9 @@ mezcla <- mezcla |>
 
 **Retorno acumulado a 12 meses (Anual)**
 
-ES: El retorno mensual suele ser inestable en muchas inversiones. Usualmente lo que interesa a la hora de analizar inversiones es el retorno anual.
+ES: Más estable que el mensual; refleja la tendencia anual.
 
-EN: The monthly return usually is unstable in a variety of investments. Many times we use the annual return.
+EN: More stable than monthly return; reflects annual trend.
 
 ```{r}
 mezcla <- mezcla |>
@@ -145,11 +148,11 @@ mezcla <- mezcla |>
   )
 ```
 
-**Inflación mensual y anual**
+**Inflación mensual/anual**
 
-ES: Hacemos lo mismo con la inflación que con el sp500.
+ES: Hacemos lo mismo con la inflación.
 
-EN: We do the same with de CPI.
+EN: We do the same with the CPI.
 
 ```{r}
 mezcla <- mezcla |>
@@ -162,11 +165,11 @@ mezcla <- mezcla |>
   )
 ```
 
-**SP500 deflactado por CPI**
+**S&P 500 real**
 
-ES: Esta variable describe cuanto realmente gana el sp500 sin contar la inflación.
+ES: Describe cuanto realmente gana el sp500 después de ajustarlo a la inflación.
 
-EN: This variable describe how much really win sp500 without inflation.
+EN: Describe how much the S&P 500 gains in real terms after adjusting for inflation.
 
 ```{r}
 mezcla <- mezcla |>
@@ -176,11 +179,11 @@ mezcla <- mezcla |>
   )
 ```
 
-**Normalizar los valores**
+**Normalización**
 
-ES: Creamos una variable con las escalas normalizadas para posibles comparaciones futuras.
+ES: Normalizamos ambas series (base 100 en la primera observación) para compararlas en la misma escala.
 
-EN: We need to standar the variables to be able to compare in the future.
+EN: We normalizate both series (index = 100 at the first observation) to put them on the same scale.
 
 ```{r}
 mezcla <- mezcla |>
@@ -193,12 +196,11 @@ mezcla <- mezcla |>
 
 ## Visión Estadística
 
-ES: Calcularemos estadísticos útiles para posibles inferencias futuras y para poder visualizar la naturaleza de los datos.
+ES: Calculamos estadísticos útiles para posibles inferencias futuras y para poder visualizar la naturaleza de los datos.
 
-EN: We calculate usefull statisticals to possible inferences in the future and to be able to see the data nature.
+EN: We compute useful statisticals to support later inferences in the future and to characterize the data.
 
 ```{r}
-# --- 1) Resumen estadístico ---
 desc <- mezcla |>
   summarise(
     across(
