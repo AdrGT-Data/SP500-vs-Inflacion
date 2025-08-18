@@ -7,6 +7,10 @@ output:
     toc_float: true
     number_sections: true
 ---
+```{r}
+knitr::opts_chunk$set(message = FALSE, warning = FALSE)
+
+```
 
 # Introducción
 
@@ -226,8 +230,8 @@ ES: En este punto programaremos gráficos que nos ayuden a ver las relaciones de
 EN: In this point we program different graphics which can help us watching at the relations between variables.
 
 ```{r}
-# --- 4) Distribución de retornos mensuales ---
 mezcla |>
+  drop_na(ret_m) |> 
   ggplot(aes(ret_m)) +
   geom_histogram(bins = 40, fill = "skyblue", color = "white") +
   labs(
@@ -239,14 +243,16 @@ mezcla |>
 
 ES: Muestra volatilidad y asimetría.
 
-EN: Show volatility and asymmetry.
+EN: Shows volatility and asymmetry.
+
+
 
 ```{r}
 mezcla |> 
   select(month, sp_norm, cpi_norm) |>
   pivot_longer(-month, names_to = "variables", values_to = "norm") |>
   ggplot(aes(month, norm, color = variables)) +
-  geom_line(size = 1) +
+  geom_line(linewidth = 1) +
   labs(
     title = "Evolución normalizada S&P 500 vs CPI",
     x = NULL, y = "Índice"
@@ -254,13 +260,15 @@ mezcla |>
   theme_minimal()
 ```
 
-ES: En este gráfico simplemente comparamos la evolución de ambas variables normalizadas.
+ES: Comparamos la evolución de ambas variables normalizadas.
 
-EN: We compare in this graphic the evolution of both standardized variables.
+EN: We compare the evolution of both standardized variables.
+
+
 
 ```{r}
-# --- 3) Inflación Interanual vs retorno 12m ---
 mezcla |>
+  drop_na(infl_12m, ret_12m) |>
   select(month, infl_12m, ret_12m) |>
   pivot_longer(-month, names_to = "serie", values_to = "valor") |>
   ggplot(aes(month, valor, color = serie)) +
@@ -276,11 +284,13 @@ mezcla |>
 
 ES: Permite ver si subidas o bajadas de inflación coinciden con cambios en la rentabilidad.
 
-EN: This graphic make possible watch if the ups and lows of inflation match with the changes in the profitability.
+EN: This graphic makes possible to see whether if the ups and lows of inflation match with the changes in the profitability.
+
+
 
 ```{r}
-# --- 5) Dispersión Inflación vs Retorno futuro ---
 mezcla |>
+  drop_na(infl_12m, ret_12m) |>
   ggplot(aes(infl_12m, lead(ret_12m, 12))) +
   geom_point(alpha = 0.6) +
   geom_smooth(method = "lm", se = FALSE, color = "red") +
@@ -294,12 +304,83 @@ mezcla |>
 
 ES: Un vistazo para ver si hay relación (positiva, negativa o nula) entre inflación y bolsa.
 
-EN: A simple look to watch if there is or not a relationship (positive, negative,non-existent) between inflation and budget.
+EN: A simple look to watch if there is or not a relationship (positive, negative,non-existent) between inflation and stock market.
+
+# Análisis
+
+## Correlación con rezagos y estabilidad temporal
+
+ES: **ObjetivoS**: 
+
+- Medir **cómo** se relacionan **inflación interanual** y **retorno a 12 meses** del S&P 500. Ver si la inflación "lidera" al retorno futuro.
+
+- Ver si la relación es estable o cambia por régimen/época.
+
+EN: **Objetives**:
+
+- Measuring how annual inflation and annual return are relationated. To watch if the inflation ´lead´ future return.
+
+- To see if the relation is stable or, instead, it changes depends on the regimen/time.
+
+**Correlación**
+
+```{r}
+tmp <- mezcla |>
+  select(month, infl_12m, ret_12m) |>
+  drop_na()
 
 
+# L > 0 => inflación "lidera" L meses al retorno futuro
+shift <- function(x, L) if (L >= 0) dplyr::lead(x,  L) else dplyr::lag(x, -L)
+
+lag_max <- 24
+lags_tbl <- tibble(lag = -lag_max:lag_max) |>
+  mutate(corr = purrr::map_dbl(lag, ~ cor(tmp$infl_12m, shift(tmp$ret_12m, .x), use = "complete.obs")))
+
+lags_tbl |>
+  ggplot(aes(lag, corr)) +
+  geom_hline(yintercept = 0, linetype = "dashed", alpha = .6) +
+  geom_col(width = .9) +
+  labs(title = "Correlación por rezagos",
+       subtitle = "L>0: inflación 'lidera'",
+       x = "L (meses)", y = "correlación") +
+  theme_minimal()
+
+```
+
+**Estabilidad temporal**
+
+```{r}
+M <- cbind(tmp$infl_12m, tmp$ret_12m)
+tmp$roll_corr_36m <- zoo::rollapply(
+  data = M, width = 36,
+  FUN = function(Z) cor(Z[,1], Z[,2]), by.column = FALSE,
+  align = "right", fill = NA
+)
+
+tmp |>
+  ggplot(aes(month, roll_corr_36m)) +
+  geom_hline(yintercept = 0, linetype = "dashed", alpha = .6) +
+  geom_line(linewidth = 1) +
+  labs(title = "Correlación rodante 36 meses",
+       subtitle = "Inflación YoY vs retorno del S&P 500 a 12 meses",
+       x = NULL, y = "correlación (36m)") +
+  theme_minimal()
+```
 
 
+## Regímenes de inflación
 
+ES: Objetivo: Demostrar si los rendimientos cambian materialmente con la inflacion alta/baja
 
+EN:
+
+## Retornos reales
+
+ES: Objetivo: comunicar mejor el poder adquisitivo de la inversión.
+
+EN:
+
+# Conclusiones finales
 
 
