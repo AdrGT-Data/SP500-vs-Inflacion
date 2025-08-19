@@ -348,6 +348,10 @@ lags_tbl |>
 
 ```
 
+ES: Inflación alta hoy se asocia (no se relaciona), en promedio, con **menores retornos** del S&P 500 en los próximos meses (≈ 0–8). El efecto es modesto. **No hay evidencia** de que los retornos predigan la inflación (L muy pequeñas).
+
+EN: Today, high inflation is associated (not relationated), in average, with less returns from S&P 500 in the next months (≈ 0–8). The efect is modest. There is no evidence to say that returns predict inflation (Little L values).
+
 **Estabilidad temporal**
 
 ```{r}
