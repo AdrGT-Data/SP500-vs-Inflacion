@@ -367,11 +367,14 @@ tmp |>
   geom_hline(yintercept = 0, linetype = "dashed", alpha = .6) +
   geom_line(linewidth = 1) +
   labs(title = "Correlación rodante 36 meses",
-       subtitle = "Inflación YoY vs retorno del S&P 500 a 12 meses",
+       subtitle = "Inflación anual vs retorno del S&P 500 a 12 meses",
        x = NULL, y = "correlación (36m)") +
   theme_minimal()
 ```
 
+ES: La relación inflación–bolsa no es **estable**: cambia de signo y magnitud por épocas. Cambios de régimen, políticas monetarias distintas, subida de tipos podrías ser los responsables, aunque faltarían datos para corroborarlo.
+
+EN: The inflation-stock market relation is not **stable**: It changes sign and magnitude depends on epoch. Regimen changes, diferent monetary politics or rises in interest rates can be the responsibles, but we must have more data to confirm it.
 
 ## Regímenes de inflación
 
