@@ -310,7 +310,7 @@ EN: A simple look to watch if there is or not a relationship (positive, negative
 
 ## Correlación con rezagos y estabilidad temporal
 
-ES: **ObjetivoS**: 
+ES: **Objetivos**: 
 
 - Medir **cómo** se relacionan **inflación interanual** y **retorno a 12 meses** del S&P 500. Ver si la inflación "lidera" al retorno futuro.
 
@@ -378,12 +378,13 @@ EN: The inflation-stock market relation is not **stable**: It changes sign and m
 
 ## Regímenes de inflación
 
-ES: Objetivo: Demostrar si los rendimientos cambian materialmente con la inflacion alta/baja. Para ello dividiremos el entorno en baja, media y alta inflación y compararemos rendimientos entre estos régimenes.
+ES: **Objetivo**: Demostrar si los rendimientos cambian materialmente con la inflacion alta/baja. Para ello dividiremos el rentorno en **baja, media y alta** inflación y compararemos rendimientos entre estos régimenes.
 
-En nuestro caso conisideraremos inflación media cuando esté entre 2% y 4%. Por lo que alta será más de 4% y baja por debajo del 2%.
+En nuestro caso conisideraremos inflación media cuando esté entre **2% y 4%**. Por lo que alta será más de 4% y baja por debajo del 2%.
 
-EN:
+EN: **Objetives**: Prove that if the returns change with the high/low inflation. To do it, we divide the return in **low, mid and high** inflation and comparing returns between these groups.
 
+In our case, we are going to consider mid inflation when it is between **2% and 4%**. As a result, high inflation will be up to 4% and low.
 
 ```{r}
 cuts <- c(-Inf, 2, 4, Inf)
@@ -457,9 +458,48 @@ EN:
 
 ## Retornos reales
 
-ES: Objetivo: comunicar mejor el poder adquisitivo de la inversión.
+ES: Objetivo: Medir el poder adquisitivo de la inversión.
 
 EN:
+
+```{r}
+# Aprox simple y muy usada: retorno real ≈ nominal – inflación
+mezcla <- mezcla |>
+  mutate(ret_12m_real = ret_12m - infl_12m)
+
+# Serie nominal vs real
+mezcla |>
+  select(month, ret_12m, ret_12m_real) |>
+  pivot_longer(-month, names_to = "serie", values_to = "valor") |>
+  ggplot(aes(month, valor, color = serie)) +
+  geom_hline(yintercept = 0, linetype = "dashed", alpha = .6) +
+  geom_line(linewidth = 1) +
+  labs(title = "Retorno 12 meses: nominal vs real",
+       x = NULL, y = "%") +
+  theme_minimal()
+
+# ¿Con qué frecuencia el retorno real es negativo?
+neg_tbl <- mezcla |>
+  summarise(
+    pct_neg_nom  = mean(ret_12m <  0, na.rm = TRUE) * 100,
+    pct_neg_real = mean(ret_12m_real < 0, na.rm = TRUE) * 100
+  )
+neg_tbl
+
+# (Opcional) por régimen de inflación
+neg_by_reg <- mezcla |>
+  mutate(regimen = cut(infl_12m, breaks = c(-Inf,2,4,Inf), labels = c("Baja","Media","Alta"))) |>
+  group_by(regimen) |>
+  summarise(
+    n = n(),
+    pct_neg_real = mean(ret_12m_real < 0, na.rm = TRUE) * 100,
+    med_real     = median(ret_12m_real, na.rm = TRUE),
+    .groups = "drop"
+  )
+neg_by_reg
+
+```
+
 
 # Conclusiones finales
 
