@@ -378,9 +378,82 @@ EN: The inflation-stock market relation is not **stable**: It changes sign and m
 
 ## Regímenes de inflación
 
-ES: Objetivo: Demostrar si los rendimientos cambian materialmente con la inflacion alta/baja
+ES: Objetivo: Demostrar si los rendimientos cambian materialmente con la inflacion alta/baja. Para ello dividiremos el entorno en baja, media y alta inflación y compararemos rendimientos entre estos régimenes.
+
+En nuestro caso conisideraremos inflación media cuando esté entre 2% y 4%. Por lo que alta será más de 4% y baja por debajo del 2%.
 
 EN:
+
+
+```{r}
+cuts <- c(-Inf, 2, 4, Inf)
+labs <- c("Baja (<2%)", "Media (2–4%)", "Alta (>4%)")
+
+# Régimenes
+tab_reg <- mezcla |>
+  drop_na(infl_12m, ret_12m) |>
+  mutate(regimen = cut(infl_12m, breaks = cuts, labels = labs)) |>
+  group_by(regimen) |> # Calculamos los estadísticos
+  summarise(
+    n = n(),
+    mean_ret12   = mean(ret_12m),
+    median_ret12 = median(ret_12m),
+    sd_ret12     = sd(ret_12m),
+    se           = sd_ret12 / sqrt(n),
+    lwr95        = mean_ret12 - 1.96*se,
+    upr95        = mean_ret12 + 1.96*se,
+    .groups = "drop"
+  )
+
+# Visual: medias con IC 95%
+tab_reg |>
+  ggplot(aes(regimen, mean_ret12)) +
+  geom_col(width = .7) +
+  geom_errorbar(aes(ymin = lwr95, ymax = upr95), width = .15) +
+  labs(title = "Retorno a 12 meses por régimen de inflación",
+       x = NULL, y = "media ret_12m (%)") +
+  theme_minimal()
+```
+
+ES: En el periodo muestral, los rendimientos a 12 meses del **S&P 500** son, en promedio, **significativamente menores** cuando la inflación supera el **5** %, mientras que los entornos de inflación baja y media muestran medias similares y sensiblemente superiores.
+
+EN:
+
+```{r}
+# Boxplot (distribución completa)
+mezcla |>
+  drop_na(infl_12m, ret_12m) |>
+  mutate(regimen = cut(infl_12m, breaks = cuts, labels = labs)) |>
+  ggplot(aes(regimen, ret_12m)) +
+  geom_boxplot() +
+  labs(title = "Distribución de ret_12m por régimen de inflación",
+       x = NULL, y = "%") +
+  theme_minimal()
+```
+
+ES: No sólo cae la media: con **inflación alta** aumentan la **frecuencia** y la **magnitud** de retornos negativos.
+
+EN:
+
+```{r}
+# Contraste no paramétrico entre regímenes (robusto a no-normalidad)
+kruskal.test(ret_12m ~ cut(infl_12m, breaks = cuts), data = mezcla)
+
+```
+
+ES: Con este contraste queremos ver si las **distribuciones** de `ret_12m` son iguales en los tres regímenes. Al darnos como resultado un p-valor tan bajo debemos **rechazar** la hipótesis nula de que todas pertenecen a la misma distribución, **al menos** una difiere. Esto lo podemos traducir a que estadísticamente existen diferencias sustanciales, y por tanto económicamente relevantes, entre los regímenes.
+
+EN:
+
+****
+ES: Con esto acabaría con este punto pero si se quisiera desarrollar más podríamos:
+
+- Usar otro contraste no paramétrico entre pares de categorías y asi descubrir cual es la que difiere del resto.
+
+- Usar como cortes los cuantiles en vez del 2% y 4%. Esto se haría por demostrar que los resultados no dependen de una elección arbitraria de umbrales.
+
+EN: 
+****
 
 ## Retornos reales
 
