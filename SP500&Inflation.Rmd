@@ -245,8 +245,6 @@ ES: Muestra volatilidad y asimetría.
 
 EN: Shows volatility and asymmetry.
 
-
-
 ```{r}
 mezcla |> 
   select(month, sp_norm, cpi_norm) |>
@@ -263,8 +261,6 @@ mezcla |>
 ES: Comparamos la evolución de ambas variables normalizadas.
 
 EN: We compare the evolution of both standardized variables.
-
-
 
 ```{r}
 mezcla |>
@@ -285,8 +281,6 @@ mezcla |>
 ES: Permite ver si subidas o bajadas de inflación coinciden con cambios en la rentabilidad.
 
 EN: This graphic makes possible to see whether if the ups and lows of inflation match with the changes in the profitability.
-
-
 
 ```{r}
 mezcla |>
@@ -418,7 +412,7 @@ tab_reg |>
 
 ES: En el periodo muestral, los rendimientos a 12 meses del **S&P 500** son, en promedio, **significativamente menores** cuando la inflación supera el **5** %, mientras que los entornos de inflación baja y media muestran medias similares y sensiblemente superiores.
 
-EN:
+EN: In our sample period, the **S&P 500** annual returns are, in average, significantly lower when inflation up 5% than when not.
 
 ```{r}
 # Boxplot (distribución completa)
@@ -434,7 +428,7 @@ mezcla |>
 
 ES: No sólo cae la media: con **inflación alta** aumentan la **frecuencia** y la **magnitud** de retornos negativos.
 
-EN:
+EN: With **high inflation** not only fall the average, **frecuency** and **magnitude** increase to negative returns.
 
 ```{r}
 # Contraste no paramétrico entre regímenes (robusto a no-normalidad)
@@ -442,29 +436,38 @@ kruskal.test(ret_12m ~ cut(infl_12m, breaks = cuts), data = mezcla)
 
 ```
 
-ES: Con este contraste queremos ver si las **distribuciones** de `ret_12m` son iguales en los tres regímenes. Al darnos como resultado un p-valor tan bajo debemos **rechazar** la hipótesis nula de que todas pertenecen a la misma distribución, **al menos** una difiere. Esto lo podemos traducir a que estadísticamente existen diferencias sustanciales, y por tanto económicamente relevantes, entre los regímenes.
+ES: Con este contraste queremos ver si las **distribuciones** de `ret_12m` son iguales en los tres regímenes. Al darnos como resultado un p-valor tan bajo debemos **rechazar** la hipótesis nula de que todas pertenecen a la misma distribución, **al menos** una difiere. 
 
-EN:
+Esto lo podemos traducir a que estadísticamente existen diferencias sustanciales, y por tanto económicamente relevantes, entre los regímenes.
+
+EN: With this contrast we look for seeing if the **distributions** of `ret_12m` are the same in the three regimens. With the p-value so low we can **reject** the void hypothesis: **At least**, one of them differ from the others.
+
+Statistically it exists sustancial differences, and hence economically relevant, between regimens.
 
 ****
 ES: Con esto acabaría con este punto pero si se quisiera desarrollar más podríamos:
 
 - Usar otro contraste no paramétrico entre pares de categorías y asi descubrir cual es la que difiere del resto.
 
-- Usar como cortes los cuantiles en vez del 2% y 4%. Esto se haría por demostrar que los resultados no dependen de una elección arbitraria de umbrales.
+- Usar como cortes los cuartiles en vez del 2% y 4%. Esto se haría por demostrar que los resultados no dependen de una elección arbitraria de umbrales.
 
-EN: 
+EN: With that we have finished this point, but if you would like to develop more, you can:
+
+- Use another constrast between pairs and discover which regimen differs.
+
+- Use quartiles as cutoff instaed 2% or 4%. That demostrates that the results do not depend on an arbitrary decision.
 ****
 
 ## Retornos reales
 
 ES: Objetivo: Medir el poder adquisitivo de la inversión.
 
-EN:
+EN: Objetive: Measure purchasing power of the investment.
 
 ```{r}
 # Aprox simple y muy usada: retorno real ≈ nominal – inflación
 mezcla <- mezcla |>
+  drop_na(infl_12m) |>
   mutate(ret_12m_real = ret_12m - infl_12m)
 
 # Serie nominal vs real
@@ -477,7 +480,13 @@ mezcla |>
   labs(title = "Retorno 12 meses: nominal vs real",
        x = NULL, y = "%") +
   theme_minimal()
+```
 
+ES: La serie **real** suele ir por debajo de la serie **nominal**, además la separación aumenta en etapas de inflación elevada y se disminuye con inflación baja.
+
+EN: The **real** serie usually follows below the **nominal** serie, moreover, the distance increases in high inflation seasons and decreases with low inflation.
+
+```{r}
 # ¿Con qué frecuencia el retorno real es negativo?
 neg_tbl <- mezcla |>
   summarise(
@@ -485,8 +494,13 @@ neg_tbl <- mezcla |>
     pct_neg_real = mean(ret_12m_real < 0, na.rm = TRUE) * 100
   )
 neg_tbl
+```
 
-# (Opcional) por régimen de inflación
+ES: En la muestra, el **33.8** % de las ventanas anuales resultan en pérdida real, frente al **26.0** % en nominal.
+
+EN: In the sample, 33.8% of the anual windows results in real losses, in front of 26.0% in nominal.
+
+```{r}
 neg_by_reg <- mezcla |>
   mutate(regimen = cut(infl_12m, breaks = c(-Inf,2,4,Inf), labels = c("Baja","Media","Alta"))) |>
   group_by(regimen) |>
@@ -500,7 +514,34 @@ neg_by_reg
 
 ```
 
+ES: En inflación **alta**, más de **la mitad** de los periodos de 12 meses terminan en pérdida **real** y la **mediana** del retorno real es **negativa** (−2.3 %). En inflación **baja/media**, las pérdidas reales son menos frecuentes (22–26 %) y la mediana es claramente **positiva**.
+
+EN: In high inflation seasons, more than the half of annual periods end in real losses and the real return median is negative (-2.3 %). Conversely, in low inflation seasons, the real return are less frecuent (22-26 %) and the median is positive.
+
+```{r}
+mezcla|>
+  mutate(regimen = cut(infl_12m, breaks = c(-Inf,2,4,Inf),
+                       labels = c("Baja","Media","Alta"))) |>
+  group_by(regimen) |>
+  summarise(pct_neg_real = mean(ret_12m - infl_12m < 0) * 100, .groups="drop") |>
+  ggplot(aes(regimen, pct_neg_real)) +
+  geom_col(width=.7) +
+  labs(title="Porcentaje de periodos con retorno real negativo",
+       x=NULL, y="%") +
+  theme_minimal()
+
+```
 
 # Conclusiones finales
 
+ES: El análisis revela que la relación entre inflación y S&P 500 es compleja y cambiante. La correlación contemporánea y con rezagos resulta **poco estable**, lo que descarta un uso predictivo sólido de la inflación como única variable. Sin embargo, al clasificar por regímenes, los resultados son más claros: en entornos de inflación alta (>4 %), los retornos nominales tienden a ser más bajos y volátiles, y los retornos reales son frecuentemente negativos (más del 50 % de los casos). Esto contrasta con los periodos de inflación baja o media, donde la mediana de los retornos reales se mantiene claramente positiva.
 
+Entre las **limitaciones** del estudio destacan el uso de retornos solapados, la exclusión de dividendos en el índice y los cambios en la política monetaria a lo largo del periodo. Aun así, los resultados son robustos a distintas definiciones de régimen y ventanas temporales.
+
+En definitiva, más que un predictor directo, la inflación actúa como un factor que condiciona de manera importante el perfil riesgo–rentabilidad del mercado. Para el inversor, la lección práctica es que los episodios de inflación elevada suponen un riesgo claro de deterioro del poder adquisitivo, incluso si los retornos nominales son positivos.
+
+EN: The analysis highlights that the relationship between inflation and the S&P 500 is complex and regime-dependent. Both contemporaneous and lagged correlations are **unstable**, making inflation a weak standalone predictor of equity returns. However, regime analysis provides a clearer picture: during high-inflation periods (>4%), nominal returns tend to be lower and more volatile, while real returns are frequently negative (over 50% of cases). This contrasts with low- and medium-inflation environments, where median real returns remain positive.
+
+**Limitations** of the study include overlapping return windows, the use of the price index without dividends, and structural changes in monetary policy across decades. Nevertheless, results are robust to alternative thresholds and non-overlapping samples.
+
+Overall, inflation should not be seen as a direct forecasting tool but rather as a contextual factor that significantly shapes the risk–return profile of equities. For investors, the practical takeaway is that high-inflation episodes pose a tangible risk of purchasing-power erosion, even when nominal returns appear positive.
